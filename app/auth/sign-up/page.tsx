@@ -20,16 +20,35 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import z from "zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
+
   const form = useForm({
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: "", name: "", password: "", confirmPassword: "" },
   });
-  function onSubmit(data: any) {
-    console.log(data);
+  async function onSubmit(data: z.infer<typeof signUpSchema>) {
+    await authClient.signUp.email({
+      email: data.email,
+      name: data.name,
+      password: data.password,
+      fetchOptions: {
+        onSuccess: () => {
+          toast.success("Account created successfully");
+          router.push("/");
+        },
+        onError: (error) => {
+          toast.error(error.error.message);
+        },
+      },
+    });
   }
   return (
     <Card>
