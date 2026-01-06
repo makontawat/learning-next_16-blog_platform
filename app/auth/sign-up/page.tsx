@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
   Card,
@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
+  const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
@@ -33,21 +34,25 @@ export default function SignUpPage() {
   const form = useForm({
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: "", name: "", password: "", confirmPassword: "" },
+    shouldFocusError: true,
   });
-  async function onSubmit(data: z.infer<typeof signUpSchema>) {
-    await authClient.signUp.email({
-      email: data.email,
-      name: data.name,
-      password: data.password,
-      fetchOptions: {
-        onSuccess: () => {
-          toast.success("Account created successfully");
-          router.push("/");
+  function onSubmit(data: z.infer<typeof signUpSchema>) {
+    if (isPending) return;
+    startTransition(async () => {
+      await authClient.signUp.email({
+        email: data.email,
+        name: data.name,
+        password: data.password,
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Account created successfully");
+            router.push("/");
+          },
+          onError: (error) => {
+            toast.error(error.error.message);
+          },
         },
-        onError: (error) => {
-          toast.error(error.error.message);
-        },
-      },
+      });
     });
   }
   return (
@@ -109,6 +114,7 @@ export default function SignUpPage() {
                       className="pr-10"
                     />
                     <button
+                      disabled={isPending}
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 hover:text-gray-600 cursor-pointer"
@@ -138,6 +144,7 @@ export default function SignUpPage() {
                       className="pr-10"
                     />
                     <button
+                      disabled={isPending}
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 hover:text-gray-600 cursor-pointer"
@@ -152,7 +159,16 @@ export default function SignUpPage() {
                 </Field>
               )}
             />
-            <Button className="cursor-pointer">Sign up</Button>
+            <Button className="cursor-pointer" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <span>Sign up</span>
+              )}
+            </Button>
           </FieldGroup>
         </form>
       </CardContent>
