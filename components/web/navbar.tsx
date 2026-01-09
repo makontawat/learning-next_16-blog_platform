@@ -15,7 +15,7 @@ export function Navbar() {
       <div className="flex items-center gap-8">
         <Link href="/">
           <h1 className="text-3xl font-bold">
-            Next<span className="text-blue-500">Pro</span>
+            Blog<span className="text-primary">Hub</span>
           </h1>
         </Link>
         <div className="flex items-center gap-2">
@@ -60,9 +60,9 @@ export function Navbar() {
             >
               Login
             </Link>
-            <ThemeToggle />
           </>
         )}
+        <ThemeToggle />
       </div>
     </nav>
   );

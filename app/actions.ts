@@ -2,25 +2,64 @@
 
 import z from "zod";
 import { postSchema } from "./schemas/blog";
-import { fetchAuthMutation } from "@/lib/auth-server";
+import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { redirect } from "next/navigation";
+import { getToken } from "@/lib/auth-server";
+import { updateTag } from "next/cache";
 
 export async function createBlogAction(values: z.infer<typeof postSchema>) {
-  const parsed = postSchema.safeParse(values);
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues };
-  }
-
   try {
-    await fetchAuthMutation(api.posts.createPost, {
-      title: parsed.data.title,
-      body: parsed.data.content,
+    //Validate input (title, content, image)
+    const parsed = postSchema.safeParse(values);
+
+    if (!parsed.success) {
+      throw new Error("Invalid form data");
+    }
+
+    //Get authenticated
+    const token = await getToken();
+
+    const imageUrl = await fetchMutation(
+      api.posts.generateImageUploadUrl,
+      {},
+      { token } //only logged-in users can upload
+    );
+
+    //Upload the image
+    const uploadResult = await fetch(imageUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": parsed.data.image.type,
+      },
+      body: parsed.data.image,
     });
-  } catch (e) {
-    return { error: "Failed to create post" };
+
+    if (!uploadResult.ok) {
+      return {
+        error: "Failed to upload image",
+      };
+    }
+
+    const { storageId } = await uploadResult.json();
+
+    //Create the blog post in the database
+    await fetchMutation(
+      api.posts.createPost,
+      {
+        body: parsed.data.content,
+        title: parsed.data.title,
+        imageStorageId: storageId,
+      },
+      { token }
+    );
+  } catch {
+    return {
+      error: "Failed to create post",
+    };
   }
 
-  redirect("/");
+  updateTag("blog");
+
+  return redirect("/blog");
 }
