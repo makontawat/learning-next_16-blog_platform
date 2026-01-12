@@ -10,4 +10,10 @@ export default defineSchema({
       v.id("_storage")
     ) /* Reference to an image in Convex Storage */,
   }),
+  comments: defineTable({
+    postId: v.id("posts"),
+    body: v.string(),
+    authorId: v.string(),
+    authorName: v.string(),
+  }),
 });

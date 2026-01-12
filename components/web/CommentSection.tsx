@@ -1,0 +1,131 @@
+"use client";
+
+import { Loader2, MessageSquare } from "lucide-react";
+import { Card, CardContent, CardHeader } from "../ui/card";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
+import { commentSchema } from "@/app/schemas/comment";
+import { Field, FieldError, FieldLabel } from "../ui/field";
+import { Textarea } from "../ui/textarea";
+import { Button } from "../ui/button";
+import { useParams } from "next/navigation";
+import { Id } from "@/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import z from "zod";
+import { toast } from "sonner";
+import { useTransition } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@radix-ui/react-dropdown-menu";
+export function CommentSection() {
+  const params = useParams<{ postId: Id<"posts"> }>();
+
+  const data = useQuery(api.comments.getCommentsByPostId, {
+    postId: params.postId,
+  });
+
+  const [isPending, startTransition] = useTransition();
+  const createComment = useMutation(api.comments.createComment);
+  const form = useForm({
+    resolver: zodResolver(commentSchema),
+    defaultValues: { body: "", postId: params.postId },
+    shouldFocusError: true,
+  });
+
+  async function onSubmit(data: z.infer<typeof commentSchema>) {
+    startTransition(async () => {
+      try {
+        await createComment(data);
+        form.reset();
+        toast.success("Comment Posted");
+      } catch {
+        toast.error("Failed to create comment");
+      }
+    });
+  }
+
+  if (data === undefined) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2 border-b">
+          <MessageSquare className="size-5" />
+          <h2 className="text-xl font-bold">Comments</h2>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <p>Loading comments...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center gap-2 border-b">
+        <MessageSquare className="size-5" />
+        <h2 className="text-xl font-bold">
+          {data.length} Comment{data.length !== 1 && "s"}
+        </h2>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <Controller
+            name="body"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field>
+                <FieldLabel>Comment</FieldLabel>
+                <Textarea
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Say something..."
+                  {...field}
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+          <Button className="cursor-pointer" disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <span>Comment</span>
+            )}
+          </Button>
+        </form>
+
+        {data?.length > 0 && <Separator />}
+
+        <section className="space-y-6">
+          {data?.map((comment) => (
+            <div key={comment._id} className="flex gap-4">
+              <Avatar className="size-10 shrink-0">
+                <AvatarImage
+                  src={`https://avatar.vercel.sh/${comment.authorName}`}
+                  alt={comment.authorName}
+                />
+                <AvatarFallback>
+                  {comment.authorName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sm">{comment.authorName}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {new Date(comment._creationTime).toLocaleString("en-US")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground/90 whitespace-pre-wrap leading-relaxed">
+                  {comment.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
+      </CardContent>
+    </Card>
+  );
+}

@@ -7,6 +7,9 @@ import { fetchAuthQuery } from "@/lib/auth-server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+export const dynamic = "force-static";
+export const revalidate = 30;
+
 export default function BlogPage() {
   return (
     <div className="py-12">
