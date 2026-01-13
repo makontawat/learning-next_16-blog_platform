@@ -2,23 +2,42 @@ import { buttonVariants } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { fetchAuthQuery } from "@/lib/auth-server";
+import { fetchAuthQuery, getToken } from "@/lib/auth-server";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CommentSection } from "@/components/web/CommentSection";
+import { fetchQuery, preloadQuery } from "convex/nextjs";
+import { PostPresence } from "@/components/web/PostPresence";
 
 interface PostIdRouteProps {
   params: Promise<{ postId: Id<"posts"> }>;
 }
 
+export async function generateMetadata({ params }: PostIdRouteProps) {
+  const { postId } = await params;
+  const post = await fetchAuthQuery(api.posts.getPostById, { postId: postId });
+  if (!post)
+    return {
+      title: "Post not found",
+      description:
+        "The post you are looking for does not exist or was deleted.",
+    };
+  return { title: post?.title, description: post?.body };
+}
+
 export default async function PostIdRoute({ params }: PostIdRouteProps) {
   const { postId } = await params;
-
-  const post = await fetchAuthQuery(api.posts.getPostById, { postId: postId });
-
+  const token = await getToken();
+  const [post, preloadedComments, userId] = await Promise.all([
+    await fetchAuthQuery(api.posts.getPostById, { postId: postId }),
+    await preloadQuery(api.comments.getCommentsByPostId, {
+      postId: postId,
+    }),
+    await fetchQuery(api.presence.getUserId, {}, { token }),
+  ]);
 
   if (!post) {
     return (
@@ -56,7 +75,7 @@ export default async function PostIdRoute({ params }: PostIdRouteProps) {
           <img
             src={post.imageUrl}
             alt={post.title}
-            className="w-full h-full rounded-xl object-cover hover:scale-105 trandition-transform duration-500"
+            className="w-full h-full rounded-xl object-cover hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <Image
@@ -71,14 +90,18 @@ export default async function PostIdRoute({ params }: PostIdRouteProps) {
         <h1 className="text-4xl font-bold tracking-tight text-foreground">
           {post.title}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Posted on: {new Date(post._creationTime).toLocaleDateString("en-US")}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Posted on:
+            {new Date(post._creationTime).toLocaleDateString("en-US")}
+          </p>
+          {userId && <PostPresence roomId={post._id} userId={userId} />}
+        </div>
       </div>
       <Separator className="my-8" />
       <p className="text-muted-foreground">{post.body}</p>
       <Separator className="my-8" />
-      <CommentSection  />
+      <CommentSection preloadedComments={preloadedComments} />
     </div>
   );
 }

@@ -6,9 +6,16 @@ import { buttonVariants } from "@/components/ui/button";
 import { fetchAuthQuery } from "@/lib/auth-server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Metadata } from "next";
 
 export const dynamic = "force-static";
 export const revalidate = 30;
+
+export const metadata: Metadata = {
+  title: "Our Blog",
+  description: "Read Our Latest Articles",
+  authors: [{ name: "Makontawat" }],
+};
 
 export default function BlogPage() {
   return (
