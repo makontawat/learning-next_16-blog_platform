@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { CommentSection } from "@/components/web/CommentSection";
 import { fetchQuery, preloadQuery } from "convex/nextjs";
 import { PostPresence } from "@/components/web/PostPresence";
+import { use } from "react";
+import { redirect } from "next/navigation"; 
 
 interface PostIdRouteProps {
   params: Promise<{ postId: Id<"posts"> }>;
@@ -38,6 +40,10 @@ export default async function PostIdRoute({ params }: PostIdRouteProps) {
     }),
     await fetchQuery(api.presence.getUserId, {}, { token }),
   ]);
+
+  if (!userId) {
+    return redirect("/auth/login");
+  }
 
   if (!post) {
     return (
