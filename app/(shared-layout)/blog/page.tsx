@@ -7,9 +7,13 @@ import { fetchAuthQuery } from "@/lib/auth-server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Metadata } from "next";
+import { connect } from "http2";
+import { connection } from "next/server";
+import { fetchQuery } from "convex/nextjs";
+import { cacheLife, cacheTag } from "next/cache";
 
-export const dynamic = "force-static";
-export const revalidate = 30;
+// export const dynamic = "force-static";
+// export const revalidate = 30;
 
 export const metadata: Metadata = {
   title: "Our Blog",
@@ -36,8 +40,10 @@ export default function BlogPage() {
 }
 
 async function LoadingBlog() {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const data = await fetchAuthQuery(api.posts.getPosts);
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("blog");
+  const data = await fetchQuery(api.posts.getPosts);
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

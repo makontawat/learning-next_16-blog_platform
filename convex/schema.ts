@@ -7,9 +7,11 @@ export default defineSchema({
     body: v.string(),
     authorId: v.string(),
     imageStorageId: v.optional(
-      v.id("_storage")
+      v.id("_storage"),
     ) /* Reference to an image in Convex Storage */,
-  }),
+  })
+    .searchIndex("search_title", { searchField: "title" })
+    .searchIndex("search_body", { searchField: "body" }),
   comments: defineTable({
     postId: v.id("posts"),
     body: v.string(),

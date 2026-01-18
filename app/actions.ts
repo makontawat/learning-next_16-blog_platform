@@ -23,7 +23,7 @@ export async function createBlogAction(values: z.infer<typeof postSchema>) {
     const imageUrl = await fetchMutation(
       api.posts.generateImageUploadUrl,
       {},
-      { token } //only logged-in users can upload
+      { token }, //only logged-in users can upload
     );
 
     //Upload the image
@@ -51,9 +51,8 @@ export async function createBlogAction(values: z.infer<typeof postSchema>) {
         title: parsed.data.title,
         imageStorageId: storageId,
       },
-      { token }
+      { token },
     );
-
   } catch {
     return {
       error: "Failed to create post",
@@ -61,6 +60,5 @@ export async function createBlogAction(values: z.infer<typeof postSchema>) {
   }
 
   updateTag("blog");
-  revalidatePath("/blog");
   return redirect("/blog");
 }

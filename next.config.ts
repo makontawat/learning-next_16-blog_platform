@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   images: {
     remotePatterns: [
       {
@@ -8,9 +9,9 @@ const nextConfig: NextConfig = {
         hostname: "cdn.pixabay.com",
       },
       {
-        protocol: "http", 
+        protocol: "http",
         hostname: "127.0.0.1",
-        port: "3210", 
+        port: "3210",
       },
     ],
   },
